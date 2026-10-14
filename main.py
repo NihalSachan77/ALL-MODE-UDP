@@ -26,7 +26,10 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from google_play_scraper import app as play_scraper
+try:
+    from google_play_scraper import app as play_scraper
+except ImportError:
+    play_scraper = None  # Optional at startup; version lookup uses a fallback.
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from protobuf_decoder.protobuf_decoder import Parser
@@ -561,12 +564,20 @@ async def aes_encrypt(payload, key, iv):
 
 
 async def get_playstore_version():
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: play_scraper('com.dts.freefireth', lang='hi', country='id')
-    )
-    return result.get("version")
+    """Return the Play Store version; keep startup resilient if the scraper is unavailable."""
+    if play_scraper is None:
+        print_warning("google-play-scraper is not installed; using fallback app version.")
+        return "1.132.8"
+    loop = asyncio.get_running_loop()
+    try:
+        result = await loop.run_in_executor(
+            None,
+            lambda: play_scraper('com.dts.freefireth', lang='hi', country='id')
+        )
+        return (result or {}).get("version") or "1.132.8"
+    except Exception as e:
+        print_warning(f"Play Store version lookup failed; using fallback version: {e}")
+        return "1.132.8"
 
 
 async def version_config():
