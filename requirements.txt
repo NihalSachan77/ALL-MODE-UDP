@@ -3,4 +3,4 @@ google-play-scraper>=1.2.0
 pycryptodome>=3.20.0
 protobuf-decoder
 protobuf
-pip install aiohttp
+aiohttp
